@@ -7,7 +7,9 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: `${baseUrl}`,
     prepareHeaders: (headers) => {
-      const token = localStorage.getItem("token");
+      const token =
+        localStorage.getItem("token") ||
+        sessionStorage.getItem("token");
 
       if (token) {
         headers.set("authorization", `Bearer ${token}`);
@@ -16,6 +18,19 @@ export const baseApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ["PaymentMethods", "Users", "Metals", "Employee", "Order", "Assignment"],
+  tagTypes: [
+    "PaymentMethods",
+    "Users",
+    "Metals",
+    "Employee",
+    "Order",
+    "Assignment",
+    "Dashboard",
+    "Events",
+    "terms",
+    "aboutUs",
+    "privacy",
+    "Profile",
+  ],
   endpoints: () => ({}),
 });

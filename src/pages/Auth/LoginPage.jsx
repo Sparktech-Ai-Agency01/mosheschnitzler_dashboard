@@ -25,7 +25,7 @@ const LoginPage = () => {
       const res = await login({ email: email.trim(), password }).unwrap();
 
       const token = res?.data?.accessToken;
-      console.log(res?.data?.accessToken)
+      // console.log(res?.data?.accessToken)
 
       if (token) {
         const storage = remember ? localStorage : sessionStorage;

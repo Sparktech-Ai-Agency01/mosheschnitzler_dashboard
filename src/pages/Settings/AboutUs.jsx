@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "react-toastify";
 import TextEditor from "../../components/TextEditor";
@@ -17,24 +17,34 @@ export default function AboutUs() {
   const { data, isLoading, refetch } = useGetAboutUsQuery();
   const [saveContent, { isLoading: isSaving }] = useUpdateAboutUsMutation();
 
+  useEffect(() => {
+    if (!data) return;
+    const rawData = data?.data ?? data;
+    const serverContent =
+      (typeof rawData === "string" ? rawData : null) ??
+      rawData?.content ??
+      rawData?.description ??
+      (Array.isArray(rawData) ? rawData[0]?.content || rawData[0]?.description : null) ??
+      data?.content ??
+      "";
 
-  console.log(data)
-  const serverContent = data?.data?.content ?? "";
-  if (!initialized && serverContent) {
-    setContent(serverContent);
-    setInitialized(true);
-  }
+    if (!initialized) {
+      if (serverContent) {
+        setContent(serverContent);
+      }
+      setInitialized(true);
+    }
+  }, [data, initialized]);
 
   const handleSave = async () => {
-
     try {
-      await saveContent({content }).unwrap();
+      await saveContent({ content, description: content }).unwrap();
       setShowSuccess(true);
       refetch();
       toast.success("About Us updated successfully");
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      toast.error(err?.data?.message || "Failed to save changes");
+      toast.error(err?.data?.message || err?.error || "Failed to save changes");
     }
   };
 

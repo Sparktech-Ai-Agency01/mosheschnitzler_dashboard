@@ -9,6 +9,11 @@ export default defineConfig({
     host: "0.0.0.0",
     port: 5173,
   },
+    preview: {
+    host: "127.0.0.1",
+    port: 4173,
+    allowedHosts: ["dashboard.yishoma.com"],
+  },
 });
 
 // import { defineConfig } from "vite";

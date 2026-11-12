@@ -19,97 +19,94 @@ import RequestOrder from "./pages/Order/RequestOrder";
 import Order from "./pages/Order/Order";
 import ProtectedRoute from "./components/ProtectedRoute";
 import EventManagement from "./pages/EventManagement";
+
 function App() {
   return (
     <Router>
       <Routes>
         <Route path="/" element={<Navigate to="/login" />} />
 
-        {/* Routes without Sidebar */}
+        {/* Routes without Sidebar (Public Routes) */}
         <Route path="/login" element={<LoginPage />} />
         <Route path="/forgetPassword" element={<ForgotPasswordPage />} />
         <Route path="/verifyCode" element={<VerifyCodePage />} />
         <Route path="/setNewPassword" element={<SetNewPasswordPage />} />
 
-        {/* Routes with Sidebar (using Layout) */}
-        <Route
-          path="/dashboard"
-          element={
+        {/* Protected Routes (Require Authentication) */}
+        <Route element={<ProtectedRoute />}>
+          <Route
+            path="/dashboard"
+            element={
               <Layout>
                 <DashboardPage />
               </Layout>
-          }
-        />
-
-        <Route
-          path="/user-management"
-          element={
-            <Layout>
-              <UserManagement />
-            </Layout>
-          }
-        />
-        <Route
-          path="/add-metal-price"
-          element={
-            <Layout>
-              <EventManagement />
-            </Layout>
-          }
-        />
-
-        <Route
-          path="/requested-orders"
-          element={
-            <Layout>
-              <RequestOrder />
-            </Layout>
-          }
-        />
-      
-        <Route
-          path="/order"
-          element={
-            <Layout>
-              <Order />
-            </Layout>
-          }
-        />
-       
-      
-
-        <Route
-          path="/aboutUs"
-          element={
-            <Layout>
-              <AboutUs />
-            </Layout>
-          }
-        />
-        <Route
-          path="/editProfile"
-          element={
-            <Layout>
-              <EditProfile />
-            </Layout>
-          }
-        />
-        <Route
-          path="/privacySettings"
-          element={
-            <Layout>
-              <PrivacySettings />
-            </Layout>
-          }
-        />
-        <Route
-          path="/termsAndConditions"
-          element={
-            <Layout>
-              <TermsAndConditions />
-            </Layout>
-          }
-        />
+            }
+          />
+          <Route
+            path="/user-management"
+            element={
+              <Layout>
+                <UserManagement />
+              </Layout>
+            }
+          />
+          <Route
+            path="/add-metal-price"
+            element={
+              <Layout>
+                <EventManagement />
+              </Layout>
+            }
+          />
+          <Route
+            path="/requested-orders"
+            element={
+              <Layout>
+                <RequestOrder />
+              </Layout>
+            }
+          />
+          <Route
+            path="/order"
+            element={
+              <Layout>
+                <Order />
+              </Layout>
+            }
+          />
+          <Route
+            path="/aboutUs"
+            element={
+              <Layout>
+                <AboutUs />
+              </Layout>
+            }
+          />
+          <Route
+            path="/editProfile"
+            element={
+              <Layout>
+                <EditProfile />
+              </Layout>
+            }
+          />
+          <Route
+            path="/privacySettings"
+            element={
+              <Layout>
+                <PrivacySettings />
+              </Layout>
+            }
+          />
+          <Route
+            path="/termsAndConditions"
+            element={
+              <Layout>
+                <TermsAndConditions />
+              </Layout>
+            }
+          />
+        </Route>
       </Routes>
     </Router>
   );

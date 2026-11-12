@@ -1,13 +1,5 @@
 import { useState } from "react";
-import {
-  Users,
-  ChevronDown,
-  UserCheck,
-  Monitor,
-  UserRoundX,
-  User,
-  TrendingUp,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
 import {
   AreaChart,
   Area,
@@ -20,32 +12,21 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import RecentUsersTable from "../../components/RecentUserTable/RecentUserTable";
-import { useGetDashboardAnalyticsQuery } from "../../redux/api/dashboardApi";
+import {
+  useGetUserGrowthQuery,
+  useGetEventsOverviewQuery,
+} from "../../redux/api/dashboardApi";
 import { useGetAllUsersQuery } from "../../redux/api/profileApi";
 
 const DashboardPage = () => {
-  const currentYear = new Date().getFullYear();
-  const [search, setSearch] = useState("");
-
-  const { data } = useGetDashboardAnalyticsQuery({
-    purchaseGrowthYear: currentYear,
-    customerGrowthYear: currentYear,
-  });
-
-
-  const dashboardData = data?.data;
-
-  const { data: userss, isLoading, isError, error } = useGetAllUsersQuery({
-    status: "active", 
+  const { data: userss, isLoading: isUsersLoading } = useGetAllUsersQuery({
+    status: "active",
     page: 1,
     limit: 10,
   });
 
-  
-
-
   return (
-    <div className="min-h-screen p-8 font-sans text-slate-800 ">
+    <div className="min-h-screen p-8 font-sans text-slate-800">
       {/* Header */}
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -58,33 +39,34 @@ const DashboardPage = () => {
         </div>
       </header>
 
-
-
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <IndependentChartCard
-          title="Monthly Customer Growth"
-          type="book"
-          dataKey="bookGrowth"
+          title="Monthly User Growth"
+          type="user"
+          dataKey="userGrowth"
           chartType="area"
         />
         <IndependentChartCard
           title="Event Overview"
-          type="blog"
-          dataKey="blogGrowth"
+          type="event"
+          dataKey="eventOverview"
           chartType="bar"
         />
       </div>
 
       {/* Recent Users Table */}
       <div>
-        <RecentUsersTable users={userss?.data?.users} isLoading={false} />
+        <RecentUsersTable
+          users={userss?.data?.users}
+          isLoading={isUsersLoading}
+        />
       </div>
     </div>
   );
 };
 
-const IndependentChartCard = ({ title, type, chartType }) => {
+const IndependentChartCard = ({ title, type, dataKey, chartType }) => {
   const STATIC_DASHBOARD_DATA = {
     2024: [
       { month: "January", count: 120 },
@@ -132,6 +114,40 @@ const IndependentChartCard = ({ title, type, chartType }) => {
 
   const [year, setYear] = useState(2026);
 
+  const isUserGrowth =
+    type === "user" ||
+    type === "book" ||
+    dataKey === "userGrowth" ||
+    dataKey === "bookGrowth" ||
+    title?.toLowerCase().includes("user");
+
+  const isEventOverview =
+    type === "event" ||
+    type === "blog" ||
+    dataKey === "eventOverview" ||
+    dataKey === "blogGrowth" ||
+    title?.toLowerCase().includes("event");
+
+  const {
+    data: userGrowthData,
+    isLoading: isUserLoading,
+    isFetching: isUserFetching,
+  } = useGetUserGrowthQuery(year, {
+    skip: !isUserGrowth,
+  });
+
+  const {
+    data: eventsOverviewData,
+    isLoading: isEventLoading,
+    isFetching: isEventFetching,
+  } = useGetEventsOverviewQuery(year, {
+    skip: !isEventOverview,
+  });
+
+  const isCurrentLoading =
+    (isUserGrowth && (isUserLoading || isUserFetching)) ||
+    (isEventOverview && (isEventLoading || isEventFetching));
+
   const startYear = 2024;
   const endYear = 2050;
   const years = Array.from(
@@ -139,11 +155,25 @@ const IndependentChartCard = ({ title, type, chartType }) => {
     (_, i) => startYear + i,
   );
 
-  const chartData =
-    STATIC_DASHBOARD_DATA?.[year]?.map((item) => ({
-      name: item.month.substring(0, 3),
-      count: item.count,
-    })) || [];
+  const apiMonths = isUserGrowth
+    ? userGrowthData?.data?.months ||
+      (Array.isArray(userGrowthData?.data) ? userGrowthData?.data : null)
+    : isEventOverview
+    ? eventsOverviewData?.data?.months ||
+      (Array.isArray(eventsOverviewData?.data)
+        ? eventsOverviewData?.data
+        : null)
+    : null;
+
+  const chartData = apiMonths
+    ? apiMonths.map((item) => ({
+        name: item?.month ? item.month.substring(0, 3) : item?.name || "",
+        count: Number(item?.count ?? item?.total ?? item?.events ?? 0),
+      }))
+    : STATIC_DASHBOARD_DATA?.[year]?.map((item) => ({
+        name: item.month.substring(0, 3),
+        count: item.count,
+      })) || [];
 
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 relative transition-all hover:shadow-md group">
@@ -176,105 +206,99 @@ const IndependentChartCard = ({ title, type, chartType }) => {
       </div>
 
       <div className="h-64 w-full">
-        {/* {isFetching ? (
+        {isCurrentLoading ? (
           <SkeletonChart />
-        ) : ( */}
-        <ResponsiveContainer width="100%" height="100%">
-          {chartType === "area" ? (
-            <AreaChart data={chartData}>
-              <defs>
-                <linearGradient id={`color${type}`} x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#0f172a" stopOpacity={0.08} />
-                  <stop offset="95%" stopColor="#0f172a" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                vertical={false}
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-              />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#F7B115" }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#F7B115" }}
-              />
-              <Tooltip
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Area
-                type="monotone"
-                dataKey="count"
-                stroke="#F7B115"
-                strokeWidth={3}
-                fill={`#F7B115`}
-              />
-            </AreaChart>
-          ) : (
-            <BarChart data={chartData}>
-              <CartesianGrid
-                vertical={false}
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-              />
-              <XAxis
-                dataKey="name"
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#F7B115" }}
-                dy={10}
-              />
-              <YAxis
-                axisLine={false}
-                tickLine={false}
-                tick={{ fontSize: 12, fill: "#F7B115" }}
-              />
-              <Tooltip
-                cursor={{ fill: "#f8fafc" }}
-                contentStyle={{
-                  borderRadius: "12px",
-                  border: "none",
-                  boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
-                }}
-              />
-              <Bar
-                dataKey="count"
-                fill="#F7B115"
-                radius={[4, 4, 0, 0]}
-                barSize={12}
-              />
-            </BarChart>
-          )}
-        </ResponsiveContainer>
-        {/* )} */}
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            {chartType === "area" ? (
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient
+                    id={`color${type}`}
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#F7B115" stopOpacity={0.3} />
+                    <stop offset="95%" stopColor="#F7B115" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  stroke="#f1f5f9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#F7B115" }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#F7B115" }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                  }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#F7B115"
+                  strokeWidth={3}
+                  fill={`url(#color${type})`}
+                />
+              </AreaChart>
+            ) : (
+              <BarChart data={chartData}>
+                <CartesianGrid
+                  vertical={false}
+                  strokeDasharray="3 3"
+                  stroke="#f1f5f9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#F7B115" }}
+                  dy={10}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 12, fill: "#F7B115" }}
+                  allowDecimals={false}
+                />
+                <Tooltip
+                  cursor={{ fill: "#f8fafc" }}
+                  contentStyle={{
+                    borderRadius: "12px",
+                    border: "none",
+                    boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)",
+                  }}
+                />
+                <Bar
+                  dataKey="count"
+                  fill="#F7B115"
+                  radius={[4, 4, 0, 0]}
+                  barSize={12}
+                />
+              </BarChart>
+            )}
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
 };
-
-
-
-const SkeletonStatCard = () => (
-  <div className="bg-white p-6 rounded-2xl border border-slate-200 animate-pulse">
-    <div className="flex justify-between items-start">
-      <div className="space-y-3">
-        <div className="h-3 w-20 bg-slate-100 rounded"></div>
-        <div className="h-8 w-12 bg-slate-200 rounded-lg"></div>
-      </div>
-      <div className="h-12 w-12 bg-slate-100 rounded-xl"></div>
-    </div>
-  </div>
-);
 
 const SkeletonChart = () => {
   const heights = [45, 70, 30, 80, 55, 65];

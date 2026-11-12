@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { CheckCircle2 } from "lucide-react";
 import { toast } from "react-toastify";
 import TextEditor from "../../components/TextEditor";
@@ -18,23 +18,40 @@ export default function PrivacyPolicyManagement() {
   const { data, isLoading, refetch } = useGetPrivacyQuery(CONTENT_TYPE);
   const [saveContent, { isLoading: isSaving }] = useUpdatePrivacyPolicyMutation();
 
-  const serverContent = data?.data?.content ?? "";
-  if (!initialized && serverContent) {
-    setContent(serverContent);
-    setInitialized(true);
-  }
+  useEffect(() => {
+    if (!data) return;
+    const rawData = data?.data ?? data;
+    const serverContent =
+      (typeof rawData === "string" ? rawData : null) ??
+      rawData?.content ??
+      rawData?.privacyPolicy ??
+      rawData?.description ??
+      (Array.isArray(rawData) ? rawData[0]?.content || rawData[0]?.description : null) ??
+      data?.content ??
+      "";
+
+    if (!initialized) {
+      if (serverContent) {
+        setContent(serverContent);
+      }
+      setInitialized(true);
+    }
+  }, [data, initialized]);
 
   const handleSave = async () => {
     try {
-      const res = await saveContent({ type: CONTENT_TYPE, content }).unwrap();
-      if (res?.success) {
-        setShowSuccess(true);
-        refetch();
-        toast.success(res?.message);
-        setTimeout(() => setShowSuccess(false), 3000);
-      }
+      const res = await saveContent({
+        type: CONTENT_TYPE,
+        content,
+        privacyPolicy: content,
+        description: content,
+      }).unwrap();
+      setShowSuccess(true);
+      refetch();
+      toast.success(res?.message || "Privacy Policy updated successfully");
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (err) {
-      toast.error(err?.data?.message || "Failed to save privacy policy");
+      toast.error(err?.data?.message || err?.error || "Failed to save privacy policy");
     }
   };
 
